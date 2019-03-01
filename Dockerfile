@@ -22,5 +22,3 @@ RUN apk add --no-cache --update abuild bc binutils build-base cmake gcc ncurses-
     && cp /srv/linux-$KERNELVER/drivers/usb/usbip/vhci-hcd.ko / \
     && rm -rf /srv/linux-$KERNELVER \
     && apk del abuild bc binutils build-base cmake gcc ncurses-dev sed ca-certificates wget libarchive-tools
-
-WORKDIR /
