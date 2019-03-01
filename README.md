@@ -1,5 +1,4 @@
-# docker
-Dockerfiles
+# VirtualHere Client for Docker
 
 This Dockerfile allows you to run the virtualhere client inside a Linux container within Windows and Mac OS.
 
