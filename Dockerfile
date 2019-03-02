@@ -16,6 +16,7 @@ RUN apk add --no-cache --update abuild bc binutils build-base cmake gcc ncurses-
     && make modules_prepare \
     && make M=drivers/usb/usbip \
     && cd / \
+    && echo -e '[General]\nAutoFind=0\n' > /root/.vhui \
     && wget https://www.virtualhere.com/sites/default/files/usbclient/vhclientx86_64 \
     && chmod +x ./vhclientx86_64 \
     && cp /srv/linux-$KERNELVER/drivers/usb/usbip/usbip-core.ko / \
