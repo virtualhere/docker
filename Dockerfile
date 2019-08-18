@@ -1,25 +1,20 @@
-FROM alpine:latest
-
-RUN apk add --no-cache --update abuild bc binutils build-base cmake gcc ncurses-dev sed ca-certificates wget libarchive-tools \
-    && KERNELVER=$(uname -r  | cut -d '-' -f 1) \
-    && wget -nv -P /srv https://www.kernel.org/pub/linux/kernel/v4.x/linux-$KERNELVER.tar.gz \
-    && bsdtar -C /srv -zxf /srv/linux-$KERNELVER.tar.gz \
-    && rm -f /srv/linux-$KERNELVER.tar.gz \
-    && cd /srv/linux-$KERNELVER \
+FROM alpine AS build
+WORKDIR /tmp/linux-src
+RUN apk add --no-cache --update ca-certificates curl gcc make musl-dev \
+    && curl -fsSL https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(uname -r | cut -d '-' -f 1).tar.gz | tar -xzf - --strip-components=1 \
     && make defconfig \
     && ([ ! -f /proc/1/root/proc/config.gz ] || zcat /proc/1/root/proc/config.gz > .config) \
-    && echo 'CONFIG_USBIP_CORE=m' >> .config \
-    && echo 'CONFIG_USBIP_VHCI_HCD=m' >> .config \
-    && echo 'CONFIG_USBIP_VHCI_HC_PORTS=8' >> .config \
-    && echo 'CONFIG_USBIP_VHCI_NR_HCS=1' >> .config \
-    && make oldconfig \
-    && make modules_prepare \
+    && printf '%s\n' 'CONFIG_USBIP_CORE=m' 'CONFIG_USBIP_VHCI_HCD=m' 'CONFIG_USBIP_VHCI_HC_PORTS=8' 'CONFIG_USBIP_VHCI_NR_HCS=1' >> .config \
+    && make oldconfig modules_prepare \
     && make M=drivers/usb/usbip \
-    && cd / \
-    && echo -e '[General]\nAutoFind=0\n' > /root/.vhui \
-    && wget https://www.virtualhere.com/sites/default/files/usbclient/vhclientx86_64 \
-    && chmod +x ./vhclientx86_64 \
-    && cp /srv/linux-$KERNELVER/drivers/usb/usbip/usbip-core.ko / \
-    && cp /srv/linux-$KERNELVER/drivers/usb/usbip/vhci-hcd.ko / \
-    && rm -rf /srv/linux-$KERNELVER \
-    && apk del abuild bc binutils build-base cmake gcc ncurses-dev sed ca-certificates wget libarchive-tools
+    && mkdir -p /dist \
+    && cd drivers/usb/usbip \
+    && cp usbip-core.ko vhci-hcd.ko /dist \
+    && echo -e '[General]\nAutoFind=0\n' > /dist/.vhui \
+    && curl -fsSL https://www.virtualhere.com/sites/default/files/usbclient/vhclientx86_64 -o /dist/vhclientx86_64 \
+    && chmod +x /dist/vhclientx86_64
+
+FROM alpine
+COPY --from=build /dist/* /vhclient/
+ENV HOME=/vhclient
+WORKDIR /vhclient
